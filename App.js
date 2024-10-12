@@ -7,7 +7,7 @@ export default function App() {
       <Text style={styles.title}>My Portfolio</Text>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>About Me</Text>
-        <Text>Hello! I'm a web developer passionate abouta creating adlhgdkmazing websites.</Text>
+        <Text>Hello! I'm a web developer passionated abouta creating adlhgdkmazing websites.</Text>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Skills</Text>
