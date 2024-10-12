@@ -19,9 +19,6 @@ jobs:
       run: npm install
     - name: Run tests
       run: npm test
-    - name: Output npm logs if failure
-      if: failure()
-      run: cat /home/runner/.npm/_logs/*-debug.log || true
 
   deploy-staging:
     needs: test
@@ -40,11 +37,16 @@ jobs:
       run: npm install -g expo-cli
     - name: Build for Web
       run: npx expo export:web
-    - uses: akhileshns/heroku-deploy@v3.12.12
-      with:
-        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-        heroku_app_name: "half-a-man-staging"
-        heroku_email: ${{secrets.HEROKU_EMAIL}}
+    - name: Deploy to Heroku (Staging)
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        HEROKU_APP_NAME: "half-a-man-staging"
+      run: |
+        git config user.email "github-actions@example.com"
+        git config user.name "GitHub Actions"
+        git add -f web-build
+        git commit -m "Add build for Heroku deployment"
+        git push https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git HEAD:master --force
         
   deploy-production:
     needs: test
@@ -63,8 +65,13 @@ jobs:
       run: npm install -g expo-cli
     - name: Build for Web
       run: npx expo export:web
-    - uses: akhileshns/heroku-deploy@v3.12.12
-      with:
-        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-        heroku_app_name: "half-a-man-production"
-        heroku_email: ${{secrets.HEROKU_EMAIL}}
+    - name: Deploy to Heroku (Production)
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        HEROKU_APP_NAME: "half-a-man-production"
+      run: |
+        git config user.email "github-actions@example.com"
+        git config user.name "GitHub Actions"
+        git add -f web-build
+        git commit -m "Add build for Heroku deployment"
+        git push https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git HEAD:master --force
