@@ -7,7 +7,7 @@ on:
     branches: [ master, Katende ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -19,21 +19,25 @@ jobs:
       run: npm cache clean --force
     - name: Install dependencies
       run: npm install --legacy-peer-deps
-    - name: Build
-      run: npm run build
-    - name: Test
+    - name: Run tests
       run: npm test
     - name: Output npm logs if failure
       if: failure()
       run: cat /home/runner/.npm/_logs/*-debug.log || true
 
   deploy-staging:
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/Katende'
     
     steps:
     - uses: actions/checkout@v2
+    - name: Install Expo CLI
+      run: npm install -g expo-cli
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+    - name: Build for Web
+      run: expo build:web
     - uses: akhileshns/heroku-deploy@v3.12.12
       with:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}
@@ -41,12 +45,18 @@ jobs:
         heroku_email: ${{secrets.HEROKU_EMAIL}}
         
   deploy-production:
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     
     steps:
     - uses: actions/checkout@v2
+    - name: Install Expo CLI
+      run: npm install -g expo-cli
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+    - name: Build for Web
+      run: expo build:web
     - uses: akhileshns/heroku-deploy@v3.12.12
       with:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}
