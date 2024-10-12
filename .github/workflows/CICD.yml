@@ -16,7 +16,7 @@ jobs:
       with:
         node-version: '18.x'
     - name: Install dependencies
-      run: npm install
+      run: npm ci
     - name: Build
       run: npm run build
     - name: Run tests
@@ -34,17 +34,17 @@ jobs:
         node-version: '18.x'
     - name: Install dependencies and build
       run: |
-        npm install
         npm ci
         npm run build
+        npm ci --only=production
     - name: Deploy to Heroku Staging
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}
         heroku_app_name: ${{secrets.HEROKU_STAGING_APP_NAME}}
         heroku_email: ${{secrets.HEROKU_EMAIL}}
-        appdir: "web-build"
-        procfile: "web: npm run heroku-start"
+        appdir: "."
+        procfile: "web: npm start"
         justlogin: true
 
   deploy_to_production:
@@ -59,14 +59,15 @@ jobs:
         node-version: '18.x'
     - name: Install dependencies and build
       run: |
-        npm install
+        npm ci
         npm run build
+        npm ci --only=production
     - name: Deploy to Heroku Production
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}
         heroku_app_name: ${{secrets.HEROKU_PRODUCTION_APP_NAME}}
         heroku_email: ${{secrets.HEROKU_EMAIL}}
-        appdir: "web-build"
-        procfile: "web: npm run heroku-start"
+        appdir: "."
+        procfile: "web: npm start"
         justlogin: true
