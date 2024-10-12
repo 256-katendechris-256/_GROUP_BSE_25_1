@@ -42,11 +42,9 @@ jobs:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         HEROKU_APP_NAME: "half-a-man-staging"
       run: |
-        git config user.email "katendechris5@gmail.com"
-        git config user.name "GitHub Actions"
-        git add -f web-build
-        git commit -m "Add build for Heroku deployment"
-        git push https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git HEAD:master --force
+        sudo curl https://cli-assets.heroku.com/install.sh | sh
+        heroku plugins:install heroku-builds
+        heroku builds:create --app $HEROKU_APP_NAME --source-tar <(tar -czf - -C web-build .)
         
   deploy-production:
     needs: test
@@ -70,8 +68,6 @@ jobs:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         HEROKU_APP_NAME: "half-a-man-production"
       run: |
-        git config user.email "github-actions@example.com"
-        git config user.name "GitHub Actions"
-        git add -f web-build
-        git commit -m "Add build for Heroku deployment"
-        git push https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git HEAD:master --force
+        sudo curl https://cli-assets.heroku.com/install.sh | sh
+        heroku plugins:install heroku-builds
+        heroku builds:create --app $HEROKU_APP_NAME --source-tar <(tar -czf - -C web-build .)
