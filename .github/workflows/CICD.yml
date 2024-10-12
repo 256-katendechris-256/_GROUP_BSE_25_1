@@ -29,7 +29,7 @@ jobs:
     - uses: akhileshns/heroku-deploy@v3.12.12
       with:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-        heroku_app_name: "your-staging-app-name"
+        heroku_app_name: "half-a-man-staging"
         heroku_email: ${{secrets.HEROKU_EMAIL}}
         
   deploy-production:
@@ -42,5 +42,5 @@ jobs:
     - uses: akhileshns/heroku-deploy@v3.12.12
       with:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-        heroku_app_name: "your-production-app-name"
+        heroku_app_name: "half-a-man-production"
         heroku_email: ${{secrets.HEROKU_EMAIL}}
