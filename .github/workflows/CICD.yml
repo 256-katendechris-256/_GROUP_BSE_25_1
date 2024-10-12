@@ -7,65 +7,72 @@ on:
     branches: [ master, Katende ]
 
 jobs:
-  test:
+  build_and_test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Use Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: '18.x'
     - name: Install dependencies
       run: npm install
+    - name: Build
+      run: npm run build
     - name: Run tests
       run: npm test
 
-  deploy-staging:
-    needs: test
-    runs-on: ubuntu-latest
+  deploy_to_staging:
+    needs: build_and_test
     if: github.ref == 'refs/heads/Katende'
-    
-    steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '18.x'
-    - name: Install dependencies
-      run: npm install
-    - name: Install Expo CLI
-      run: npm install -g expo-cli
-    - name: Build for Web
-      run: npx expo export:web
-    - name: Deploy to Heroku (Staging)
-      uses: akhileshns/heroku-deploy@v3.12.14
-      with:
-        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-        heroku_app_name: "half-a-man-staging"
-        heroku_email: ${{ secrets.HEROKU_EMAIL }}
-        appdir: "web-build"
-        
-  deploy-production:
-    needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    
     steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js
-      uses: actions/setup-node@v2
+    - uses: actions/checkout@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
       with:
         node-version: '18.x'
-    - name: Install dependencies
-      run: npm install
-    - name: Install Expo CLI
-      run: npm install -g expo-cli
-    - name: Build for Web
-      run: npx expo export:web
-    - name: Deploy to Heroku (Production)
+    - name: Install dependencies and build
+      run: |
+        npm install
+        npm run build
+    - name: Deploy to Heroku Staging
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
-        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-        heroku_app_name: "half-a-man-production"
-        heroku_email: ${{ secrets.HEROKU_EMAIL }}
-        appdir: "web-build"
+        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+        heroku_app_name: ${{secrets.HEROKU_STAGING_APP_NAME}}
+        heroku_email: ${{secrets.HEROKU_EMAIL}}
+        appdir: "."
+        procfile: "web: npm start"
+        justlogin: true
+
+  deploy_to_production:
+    needs: build_and_test
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+    - name: Install dependencies and build
+      run: |
+        npm install
+        npm run build
+    - name: Deploy to Heroku Production
+      uses: akhileshns/heroku-deploy@v3.12.14
+      with:
+        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+        heroku_app_name: ${{secrets.HEROKU_PRODUCTION_APP_NAME}}
+        heroku_email: ${{secrets.HEROKU_EMAIL}}
+        appdir: "."
+        procfile: "web: npm start"
+        justlogin: true
+    - name: Commit and push if there are changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git diff-index --quiet HEAD || (git commit -a -m "Add build artifacts" --allow-empty)
+        git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref }}
