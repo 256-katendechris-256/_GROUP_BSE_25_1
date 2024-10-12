@@ -35,6 +35,7 @@ jobs:
     - name: Install dependencies and build
       run: |
         npm install
+        npm ci
         npm run build
     - name: Deploy to Heroku Staging
       uses: akhileshns/heroku-deploy@v3.12.14
