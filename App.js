@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 export default function App() {
@@ -7,10 +7,7 @@ export default function App() {
     <ScrollView style={styles.container}>
       <StatusBar style="auto" />
       <View style={styles.header}>
-        <Image
-          style={styles.profileImage}
-          source={require('./assets/your-profile-image.jpg')}
-        />
+        <View style={styles.profileImage} />
         <Text style={styles.name}>Your Name</Text>
         <Text style={styles.subtitle}>Your Subtitle</Text>
       </View>
@@ -62,6 +59,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
+    backgroundColor: '#ffffff',
     marginBottom: 10,
   },
   name: {
