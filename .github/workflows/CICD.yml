@@ -42,8 +42,8 @@ jobs:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}
         heroku_app_name: ${{secrets.HEROKU_STAGING_APP_NAME}}
         heroku_email: ${{secrets.HEROKU_EMAIL}}
-        appdir: "."
-        procfile: "web: npm start"
+        appdir: "web-build"
+        procfile: "web: npm run heroku-start"
         justlogin: true
 
   deploy_to_production:
@@ -66,13 +66,6 @@ jobs:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}
         heroku_app_name: ${{secrets.HEROKU_PRODUCTION_APP_NAME}}
         heroku_email: ${{secrets.HEROKU_EMAIL}}
-        appdir: "."
-        procfile: "web: npm start"
+        appdir: "web-build"
+        procfile: "web: npm run heroku-start"
         justlogin: true
-    - name: Commit and push if there are changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add -A
-        git diff-index --quiet HEAD || (git commit -a -m "Add build artifacts" --allow-empty)
-        git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref }}
