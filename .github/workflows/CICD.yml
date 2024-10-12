@@ -38,13 +38,12 @@ jobs:
     - name: Build for Web
       run: npx expo export:web
     - name: Deploy to Heroku (Staging)
-      env:
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        HEROKU_APP_NAME: "half-a-man-staging"
-      run: |
-        sudo curl https://cli-assets.heroku.com/install.sh | sh
-        heroku plugins:install heroku-builds
-        heroku builds:create --app $HEROKU_APP_NAME --source-tar <(tar -czf - -C web-build .)
+      uses: akhileshns/heroku-deploy@v3.12.14
+      with:
+        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+        heroku_app_name: "half-a-man-staging"
+        heroku_email: ${{ secrets.HEROKU_EMAIL }}
+        appdir: "web-build"
         
   deploy-production:
     needs: test
@@ -64,10 +63,9 @@ jobs:
     - name: Build for Web
       run: npx expo export:web
     - name: Deploy to Heroku (Production)
-      env:
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        HEROKU_APP_NAME: "half-a-man-production"
-      run: |
-        sudo curl https://cli-assets.heroku.com/install.sh | sh
-        heroku plugins:install heroku-builds
-        heroku builds:create --app $HEROKU_APP_NAME --source-tar <(tar -czf - -C web-build .)
+      uses: akhileshns/heroku-deploy@v3.12.14
+      with:
+        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+        heroku_app_name: "half-a-man-production"
+        heroku_email: ${{ secrets.HEROKU_EMAIL }}
+        appdir: "web-build"
