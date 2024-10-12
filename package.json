@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@expo/webpack-config": "^19.0.1",
-    "expo": "~51.0.28",
+    "expo": "^51.0.28",
     "expo-status-bar": "~1.12.1",
     "express": "^4.21.1",
     "react": "18.2.0",
@@ -20,6 +20,9 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
+  },
+  "resolutions": {
+    "expo": "^50.0.21"
   },
   "private": true
 }
