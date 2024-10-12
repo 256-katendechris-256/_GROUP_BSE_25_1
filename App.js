@@ -1,45 +1,24 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, Text, View, ScrollView } from 'react-native';
 
 export default function App() {
   return (
-    <ScrollView style={styles.container}>
-      <StatusBar style="auto" />
-      <View style={styles.header}>
-        <View style={styles.profileImage} />
-        <Text style={styles.name}>Your Name</Text>
-        <Text style={styles.subtitle}>Your Subtitle</Text>
-      </View>
-
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>My Portfolio</Text>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Brief About</Text>
-        <Text style={styles.sectionContent}>
-          Write a brief introduction about yourself here. Highlight your key skills and what makes you unique.
-        </Text>
+        <Text style={styles.sectionTitle}>About Me</Text>
+        <Text>Hello! I'm a web developer passionated abouta creating adlhgdkmazing websites.</Text>
       </View>
-
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Experience</Text>
-        <View style={styles.experienceItem}>
-          <Text style={styles.experienceTitle}>Job Title 1</Text>
-          <Text style={styles.experienceDescription}>
-            Description of your role and achievements in this position.
-          </Text>
-        </View>
-        <View style={styles.experienceItem}>
-          <Text style={styles.experienceTitle}>Job Title 2</Text>
-          <Text style={styles.experienceDescription}>
-            Description of your role and achievements in this position.
-          </Text>
-        </View>
+        <Text style={styles.sectionTitle}>Skills</Text>
+        <Text>- HTML/CSS</Text>
+        <Text>- JavaScript</Text>
+        <Text>- React Native</Text>
+        <Text>- Node.js</Text>
       </View>
-
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Contact</Text>
-        <TouchableOpacity style={styles.contactButton}>
-          <Text style={styles.contactButtonText}>Get in Touch</Text>
-        </TouchableOpacity>
+        <Text style={styles.sectionTitle}>Projects</Text>
+        <Text>1. Portfolio Website (You're looking at it!)</Text>
       </View>
     </ScrollView>
   );
@@ -48,65 +27,23 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f8ff',
-  },
-  header: {
+    backgroundColor: '#fff',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#3498db',
   },
-  profileImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: '#ffffff',
-    marginBottom: 10,
-  },
-  name: {
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#ffffff',
+    marginBottom: 20,
   },
   section: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    marginBottom: 10,
+    marginBottom: 20,
+    width: '100%',
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#2c3e50',
-  },
-  sectionContent: {
-    fontSize: 16,
-    color: '#34495e',
-  },
-  experienceItem: {
-    marginBottom: 15,
-  },
-  experienceTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2c3e50',
-  },
-  experienceDescription: {
-    fontSize: 14,
-    color: '#34495e',
-  },
-  contactButton: {
-    backgroundColor: '#3498db',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  contactButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    marginBottom: 10,
   },
 });
