@@ -14,15 +14,25 @@ jobs:
     - name: Use Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '14.x'
-    - run: npm ci
-    - run: npm run build
-    - run: npm test
+        node-version: '18.x'  # Updated to a more recent Node.js version
+    - name: Debug - List files
+      run: ls -la
+    - name: Debug - Show package.json content
+      run: cat package.json
+    - name: Install dependencies
+      run: npm ci
+    - name: Build
+      run: npm run build
+    - name: Test
+      run: npm test
+    - name: Output npm logs if failure
+      if: failure()
+      run: cat /home/runner/.npm/_logs/*-debug.log
 
   deploy-staging:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/Katende'
     
     steps:
     - uses: actions/checkout@v2
@@ -35,7 +45,7 @@ jobs:
   deploy-production:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     
     steps:
     - uses: actions/checkout@v2
