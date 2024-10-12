@@ -42,7 +42,7 @@ jobs:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         HEROKU_APP_NAME: "half-a-man-staging"
       run: |
-        git config user.email "github-actions@example.com"
+        git config user.email "katendechris5@gmail.com"
         git config user.name "GitHub Actions"
         git add -f web-build
         git commit -m "Add build for Heroku deployment"
