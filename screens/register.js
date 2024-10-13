@@ -1,12 +1,22 @@
 import { StyleSheet, Text, View } from 'react-native'
 import React, { useState } from 'react'
 import { Input, Button } from 'react-native-elements'
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { authentication } from '../firebase/firebaseconfig.js'
 
 export default function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [Username, setUsername] = useState('');
     const [Avatar, setAvatar] = useState('');
+
+    const registerUser = async () =>{
+        createUserWithEmailAndPassword(authentication, email, password)
+        .then((userCredential) => {
+            console.log(userCredential)
+            console.log('just registered')
+        })
+    }
   return (
     <View>
      <Input
@@ -43,6 +53,7 @@ export default function Register() {
       
     
       <Button
+      onPress={registerUser}
      style ={styles.btn}
       title='Register'
       />
