@@ -1,10 +1,15 @@
 import React from 'react';
-import renderer from 'react-test-renderer';
+import { render } from '@testing-library/react-native';
 import App from '../App';
 
-describe('<App />', () => {
-  it('renders correctly', () => {
-    const tree = renderer.create(<App />).toJSON();
-    expect(tree).toBeTruthy();
-  });
+// Mock the firebase config
+jest.mock('../firebase/firebaseconfig', () => ({
+  authentication: {},
+}));
+
+// Mock the Chat component
+jest.mock('../screens/chat', () => 'Chat');
+
+test('renders without crashing', () => {
+  render(<App />);
 });
