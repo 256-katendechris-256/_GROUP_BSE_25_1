@@ -26,6 +26,7 @@ jobs:
       with:
         name: build
         path: build/
+        if-no-files-found: error
 
   deploy_to_staging:
     needs: build_and_test
@@ -38,6 +39,8 @@ jobs:
       with:
         name: build
         path: build/
+    - name: List contents of build directory
+      run: ls -R build/
     - name: Deploy to Heroku Staging
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
@@ -63,6 +66,8 @@ jobs:
       with:
         name: build
         path: build/
+    - name: List contents of build directory
+      run: ls -R build/
     - name: Deploy to Heroku Production
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
