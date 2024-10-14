@@ -7,6 +7,15 @@ jest.mock('../firebase/firebaseconfig', () => ({
   authentication: {},
 }));
 
+jest.mock('../firebase/firebaseconfig', () => ({
+  authentication: {
+    onAuthStateChanged: jest.fn((callback) => {
+      callback(null);
+      return jest.fn();
+    }),
+  },
+}));
+
 // Mock the Chat component
 jest.mock('../screens/chat', () => 'Chat');
 

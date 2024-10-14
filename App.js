@@ -34,12 +34,13 @@ export default function App() {
              component={Home} 
              options={{ headerShown: false }} 
              />
+ 
             <Stack.Screen 
             name="Chat" 
             component={Chat} 
             options={({route})=>({
               headerBackVisible: false,
-              title: route.params.name,
+              title: route.params.user.name || route.params.user.email ,
               headerTitleStyle: {fontWeight: 'bold'},
               headerTitleAlign: 'center'
             })}

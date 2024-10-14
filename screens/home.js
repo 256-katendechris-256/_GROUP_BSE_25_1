@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, Text, Alert } from 'react-native';
 import { Button, ListItem, Avatar } from 'react-native-elements';
 import { signOut } from 'firebase/auth';
 import { authentication, db } from '../firebase/firebaseconfig';
@@ -7,35 +7,45 @@ import { collection, getDocs } from 'firebase/firestore';
 
 export default function Home({ navigation }) {
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const currentUser = authentication.currentUser;
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const querySnapshot = await getDocs(collection(db, 'users'));
-      const userList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const usersRef = collection(db, 'users');
+      const querySnapshot = await getDocs(usersRef);
+      const userList = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(user => user.id !== currentUser.uid);
       setUsers(userList);
     } catch (error) {
       console.error("Error fetching users: ", error);
+      Alert.alert("Error", "Failed to fetch users. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = async () => {
     try {
       await signOut(authentication);
-      // The onAuthStateChanged listener in App.js will handle navigation
+      navigation.navigate('Login');
     } catch (error) {
       console.error('Logout error:', error);
+      Alert.alert("Error", "Failed to log out. Please try again.");
     }
   };
 
-  const navigateToChat = (user) => {
-    navigation.navigate('Chat', { user: user, name: user.username });
+  const navigateToChat = (chatPartner) => {
+    navigation.navigate('Chat', { user: chatPartner });
   };
 
   const renderItem = ({ item }) => (
@@ -43,10 +53,10 @@ export default function Home({ navigation }) {
       <ListItem bottomDivider>
         <Avatar
           rounded
-          source={{ uri: item.avatarUrl }}
+          source={{ uri: item.avatarUrl || 'https://placehold.co/100x100?text=Avatar' }}
         />
         <ListItem.Content>
-          <ListItem.Title>{item.username}</ListItem.Title>
+          <ListItem.Title>{item.username || item.email}</ListItem.Title>
           <ListItem.Subtitle>{item.email}</ListItem.Subtitle>
         </ListItem.Content>
         <ListItem.Chevron />
@@ -56,18 +66,27 @@ export default function Home({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={users}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        ListHeaderComponent={
-          <Text style={styles.header}>Active Users</Text>
-        }
-      />
+      {loading ? (
+        <Text>Loading users...</Text>
+      ) : users.length > 0 ? (
+        <FlatList
+          data={users}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          ListEmptyComponent={<Text>No users found.</Text>}
+        />
+      ) : (
+        <Text>No users available to chat with.</Text>
+      )}
       <Button
         title="Logout"
         onPress={handleLogout}
         containerStyle={styles.logoutButton}
+      />
+      <Button
+        title="Refresh Users"
+        onPress={fetchUsers}
+        containerStyle={styles.refreshButton}
       />
     </View>
   );
@@ -76,14 +95,12 @@ export default function Home({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 10,
+    padding: 10,
   },
   logoutButton: {
-    margin: 10,
+    marginTop: 10,
+  },
+  refreshButton: {
+    marginTop: 10,
   },
 });
