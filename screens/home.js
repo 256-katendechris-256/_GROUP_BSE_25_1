@@ -37,7 +37,7 @@ export default function Home({ navigation }) {
   const handleLogout = async () => {
     try {
       await signOut(authentication);
-      navigation.navigate('Login');
+      navigation.replace('Login');
     } catch (error) {
       console.error('Logout error:', error);
       Alert.alert("Error", "Failed to log out. Please try again.");
@@ -66,6 +66,7 @@ export default function Home({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.welcomeMessage}>Welcome, {currentUser.email}</Text>
       {loading ? (
         <Text>Loading users...</Text>
       ) : users.length > 0 ? (
@@ -73,10 +74,10 @@ export default function Home({ navigation }) {
           data={users}
           renderItem={renderItem}
           keyExtractor={item => item.id}
-          ListEmptyComponent={<Text>No users found.</Text>}
+          ListEmptyComponent={<Text>No other users found.</Text>}
         />
       ) : (
-        <Text>No users available to chat with.</Text>
+        <Text>No other users available to chat with.</Text>
       )}
       <Button
         title="Logout"
@@ -96,6 +97,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
+  },
+  welcomeMessage: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   logoutButton: {
     marginTop: 10,

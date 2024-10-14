@@ -21,6 +21,11 @@ jobs:
       run: npm run build
     - name: Run tests
       run: npm test
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: build
+        path: build/
 
   deploy_to_staging:
     needs: build_and_test
@@ -28,15 +33,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
+    - name: Download build artifacts
+      uses: actions/download-artifact@v2
       with:
-        node-version: '18.x'
-    - name: Install dependencies and build
-      run: |
-        npm ci
-        npm run build
-        npm ci --only=production
+        name: build
+        path: build/
     - name: Deploy to Heroku Staging
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
@@ -46,22 +47,22 @@ jobs:
         appdir: "."
         procfile: "web: npm start"
         justlogin: true
+    - name: Run smoke tests
+      run: |
+        # Add smoke tests here
+        echo "Running smoke tests..."
 
   deploy_to_production:
-    needs: build_and_test
+    needs: [build_and_test, deploy_to_staging]
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
+    - name: Download build artifacts
+      uses: actions/download-artifact@v2
       with:
-        node-version: '18.x'
-    - name: Install dependencies and build
-      run: |
-        npm ci
-        npm run build
-        npm ci --only=production
+        name: build
+        path: build/
     - name: Deploy to Heroku Production
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
@@ -71,3 +72,28 @@ jobs:
         appdir: "."
         procfile: "web: npm start"
         justlogin: true
+    - name: Run post-deployment tests
+      run: |
+        # Add post-deployment tests here
+        echo "Running post-deployment tests..."
+    - name: Rollback on failure
+      if: failure()
+      run: |
+        heroku rollback ${{secrets.HEROKU_PRODUCTION_APP_NAME}}
+      env:
+        HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
+
+  monitor_production:
+    needs: deploy_to_production
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check application health
+      run: |
+        # Add health check logic here
+        echo "Checking application health..."
+    - name: Rollback if health check fails
+      if: failure()
+      run: |
+        heroku rollback ${{secrets.HEROKU_PRODUCTION_APP_NAME}}
+      env:
+        HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
