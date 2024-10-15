@@ -9,18 +9,32 @@ on:
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
     steps:
     - uses: actions/checkout@v3
+    - name: Cache Node.js modules
+      uses: actions/cache@v3
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
     - name: Use Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18.x'
+        node-version: ${{ matrix.node-version }}
     - name: Install dependencies
       run: npm ci
+    - name: Run linting (fail early if there are issues)
+      run: npm run lint
     - name: Build
       run: npm run build
-    - name: Run tests
+      if: success()
+    - name: Run tests (skip if build fails)
       run: npm test
+      if: success()
 
   deploy_to_staging:
     needs: build_and_test
@@ -45,7 +59,6 @@ jobs:
         heroku_email: ${{secrets.HEROKU_EMAIL}}
         appdir: "."
         procfile: "web: npm start"
-        justlogin: true
 
   deploy_to_production:
     needs: build_and_test
@@ -69,22 +82,4 @@ jobs:
         heroku_app_name: ${{secrets.HEROKU_PRODUCTION_APP_NAME}}
         heroku_email: ${{secrets.HEROKU_EMAIL}}
         appdir: "."
-        procfile: "web: npm start"
-        justlogin: true
-
-    - name: Check deployment status
-      run: |
-        curl -n https://api.heroku.com/apps/${{secrets.HEROKU_PRODUCTION_APP_NAME}}/releases \
-        -H "Authorization: Bearer ${{secrets.HEROKU_API_KEY}}" \
-        -H "Accept: application/vnd.heroku+json; version=3" \
-        | jq '.[0].status'
-      continue-on-error: true
-      id: deployment_status
-
-    - name: Rollback if deployment fails
-      if: failure()
-      run: |
-        echo "Deployment failed, rolling back..."
-        heroku releases:rollback -a ${{secrets.HEROKU_PRODUCTION_APP_NAME}} \
-        -H "Authorization: Bearer ${{secrets.HEROKU_API_KEY}}"
-
+        procfile: "
