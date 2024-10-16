@@ -1,14 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { onAuthStateChanged } from 'firebase/auth';
+import { BrowserRouter as Router, Route, Navigate } from 'react-router-dom';
 import { authentication } from './firebase/firebaseconfig';
 import Login from './screens/login';
 import Register from './screens/register';
 import Home from './screens/home';
 import Chat from './screens/chat';
 
-const Stack = createNativeStackNavigator();
+import {createRoutesFromChildren, matchRoutes, Routes, useLocation, useNavigationType } from 'react-router-dom'
+import { getWebInstrumentations, initializeFaro, ReactIntegration, ReactRouterVersion, FaroRoutes } from '@grafana/faro-react';
+import { TracingInstrumentation } from '@grafana/faro-web-tracing';
+
+initializeFaro({
+    url: 'https://faro-collector-prod-us-east-0.grafana.net/collect/72e90fa32843c908041c77192bb1207b',
+    app: {
+      name: 'half-a-man',
+      version: '1.0.0',
+      environment: 'production'
+    },
+    
+    instrumentations: [
+      // Mandatory, omits default instrumentations otherwise.
+      ...getWebInstrumentations(),
+
+      // Tracing package to get end-to-end visibility for HTTP requests.
+      new TracingInstrumentation(),
+
+
+      new ReactIntegration(
+        {
+          router:{
+            version: ReactRouterVersion.V6,
+            dependencies: {
+              createRoutesFromChildren, matchRoutes, Routes, useLocation, useNavigationType,
+            },
+          }
+        }
+      )
+    ],
+  });
+
+
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -25,34 +57,27 @@ export default function App() {
   if (initializing) return null;
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
+    <Router>
+      <FaroRoutes>
+        {/* If user is authenticated, show Home and Chat routes */}
         {user ? (
           <>
-            <Stack.Screen
-             name="Home" 
-             component={Home} 
-             options={{ headerShown: false }} 
-             />
- 
-            <Stack.Screen 
-            name="Chat" 
-            component={Chat} 
-            options={({route})=>({
-              headerBackVisible: false,
-              title: route.params.user.name || route.params.user.email ,
-              headerTitleStyle: {fontWeight: 'bold'},
-              headerTitleAlign: 'center'
-            })}
+            <Route path="/home" element={<Home />} />
+            <Route 
+              path="/chat" 
+              element={<Chat />} 
             />
+            <Route path="*" element={<Navigate to="/home" />} />
           </>
         ) : (
           <>
-            <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
-            <Stack.Screen name="Register" component={Register} />
+            {/* If user is not authenticated, show Login and Register routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="*" element={<Navigate to="/login" />} />
           </>
         )}
-      </Stack.Navigator>
-    </NavigationContainer>
+      </FaroRoutes>
+    </Router>
   );
 }
