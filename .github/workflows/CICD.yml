@@ -27,7 +27,7 @@ jobs:
     - name: Build
       run: npm run build
     - name: Test
-      run: npm test
+      run: npm test -- --config  jest.config.js
 
   deploy_to_staging:
     needs: build_and_test
