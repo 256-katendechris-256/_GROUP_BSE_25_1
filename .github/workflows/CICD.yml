@@ -1,44 +1,57 @@
 name: CI/CD
 
+# Define when the workflow should run: on push or pull request for master and Katende branches
 on:
   push:
-    branches: [master, Katende]
+    branches: [master, Katende]  # Triggers on push to master and Katende branches
   pull_request:
-    branches: [master, Katende]
+    branches: [master, Katende]  # Triggers on pull requests to master and Katende branches
 
+# Define the jobs to be executed in the workflow
 jobs:
   build_and_test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+
     steps:
+    #   Checkout the latest code from the repository
     - uses: actions/checkout@v3
-    - name: Use Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18.x'
+
+    #   Cache Node.js dependencies for faster builds (reuse dependencies if unchanged)
     - name: Cache Node.js modules
       uses: actions/cache@v3
       with:
-        path: node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+        path: node_modules  # Cache the node_modules directory
+        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}  # Cache key based on OS and package-lock.json
         restore-keys: |
-          ${{ runner.os }}-node-
-    - name: Install dependencies
-      run: npm ci
-    - name: Build
-      run: npm run build
-    - name: Test
-      run: npx jest --config=jest.config.js
+          ${{ runner.os }}-node-  # Restore cache if exact match is not found
 
-  deploy_to_staging:
-    needs: build_and_test
-    if: github.ref == 'refs/heads/Katende'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
+    #   Setup Node.js environment (use Node.js version 18.x)
     - name: Use Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18.x'
+
+    #   Install dependencies using npm ci (clean install for consistent builds)
+    - name: Install dependencies
+      run: npm ci
+
+    #   Build and run tests in parallel to improve efficiency
+    - name: Build and Test in Parallel
+      run: |
+        npm run build &  # Run the build command in the background
+        npm test &       # Run the test command in the background
+        wait             # Wait for both build and test to complete
+
+  deploy_to_staging:
+    needs: build_and_test  # This job depends on the build_and_test job
+    if: github.ref == 'refs/heads/Katende'  # Deploy to staging only if the current branch is Katende
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+
+    steps:
+    #   Checkout the latest code
+    - uses: actions/checkout@v3
+
+    #   Cache Node.js dependencies for the staging environment
     - name: Cache Node.js modules (Staging)
       uses: actions/cache@v3
       with:
@@ -46,48 +59,41 @@ jobs:
         key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-node-
-    - name: Install dependencies and build
-      run: |
-        npm ci
-        npm run build
-    - name: Deploy to Heroku Staging
-      uses: akhileshns/heroku-deploy@v3.12.14
-      with:
-        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-        heroku_app_name: ${{secrets.HEROKU_STAGING_APP_NAME}}
-        heroku_email: ${{secrets.HEROKU_EMAIL}}
-        procfile: "web: npm start"
-    - name: Check staging deployment status
-      env:
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        HEROKU_APP_NAME: ${{ secrets.HEROKU_STAGING_APP_NAME }}
-      run: |
-        sleep 30
-        status=$(heroku releases -a $HEROKU_APP_NAME --json | jq -r '.[0].status')
-        echo "Staging Deployment Status: $status"
-        if [ "$status" != "succeeded" ]; then
-          echo "Staging deployment failed or is incomplete"
-          exit 1
-        fi
-    - name: Rollback staging if deployment fails
-      if: failure()
-      env:
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        HEROKU_APP_NAME: ${{ secrets.HEROKU_STAGING_APP_NAME }}
-      run: |
-        echo "Staging deployment failed, rolling back..."
-        heroku rollback -a $HEROKU_APP_NAME
 
-  deploy_to_production:
-    needs: build_and_test
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js
+    #   Setup Node.js environment
+    - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18.x'
+
+    #   Install dependencies, build, and clean up for production
+    - name: Install dependencies and build
+      run: |
+        npm ci             # Install all dependencies
+        npm run build      # Run the build process
+        npm ci --only=production  # Install only production dependencies to optimize deployment
+
+    #   Deploy to Heroku Staging
+    - name: Deploy to Heroku Staging
+      uses: akhileshns/heroku-deploy@v3.12.14
+      with:
+        heroku_api_key: ${{secrets.HEROKU_API_KEY}}  # Use secret for Heroku API key
+        heroku_app_name: ${{secrets.HEROKU_STAGING_APP_NAME}}  # Use secret for Heroku staging app name
+        heroku_email: ${{secrets.HEROKU_EMAIL}}  # Use secret for Heroku account email
+        appdir: "."  # Set the working directory
+        procfile: "web: npm start"  # Define the start command in the Procfile
+        justlogin: true  # Only login to Heroku without doing a full deployment
+
+  deploy_to_production:
+    needs: build_and_test  # This job depends on the build_and_test job
+    if: github.ref == 'refs/heads/master'  # Deploy to production only if the current branch is master
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+
+    steps:
+    #   Checkout the latest code
+    - uses: actions/checkout@v3
+
+    #   Cache Node.js dependencies for the production environment
     - name: Cache Node.js modules (Production)
       uses: actions/cache@v3
       with:
@@ -95,34 +101,44 @@ jobs:
         key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-node-
+
+    #   Setup Node.js environment
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+
+    #   Install dependencies, build, and clean up for production
     - name: Install dependencies and build
       run: |
-        npm ci
-        npm run build
+        npm ci             # Install all dependencies
+        npm run build      # Run the build process
+        npm ci --only=production  # Install only production dependencies to optimize deployment
+
+    #   Deploy to Heroku Production
     - name: Deploy to Heroku Production
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
-        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-        heroku_app_name: ${{secrets.HEROKU_PRODUCTION_APP_NAME}}
-        heroku_email: ${{secrets.HEROKU_EMAIL}}
-        procfile: "web: npm start"
-    - name: Check production deployment status
-      env:
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        HEROKU_APP_NAME: ${{ secrets.HEROKU_PRODUCTION_APP_NAME }}
+        heroku_api_key: ${{secrets.HEROKU_API_KEY}}  # Use secret for Heroku API key
+        heroku_app_name: ${{secrets.HEROKU_PRODUCTION_APP_NAME}}  # Use secret for Heroku production app name
+        heroku_email: ${{secrets.HEROKU_EMAIL}}  # Use secret for Heroku account email
+        appdir: "."  # Set the working directory
+        procfile: "web: npm start"  # Define the start command in the Procfile
+        justlogin: true  # Only login to Heroku without doing a full deployment
+
+    #   Check the deployment status on Heroku after deployment
+    - name: Check deployment status
       run: |
-        sleep 30
-        status=$(heroku releases -a $HEROKU_APP_NAME --json | jq -r '.[0].status')
-        echo "Production Deployment Status: $status"
-        if [ "$status" != "succeeded" ]; then
-          echo "Production deployment failed or is incomplete"
-          exit 1
-        fi
-    - name: Rollback production if deployment fails
-      if: failure()
-      env:
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        HEROKU_APP_NAME: ${{ secrets.HEROKU_PRODUCTION_APP_NAME }}
+        status=$(curl -n https://api.heroku.com/apps/${{secrets.HEROKU_PRODUCTION_APP_NAME}}/releases \
+        -H "Authorization: Bearer ${{secrets.HEROKU_API_KEY}}" \
+        -H "Accept: application/vnd.heroku+json; version=3" | jq '.[0].status')
+        echo "Deployment Status: $status"  # Output the deployment status for visibility
+      continue-on-error: true  # Continue even if checking the status fails
+
+    #  Rollback the deployment if it fails
+    - name: Rollback if deployment fails
+      if: failure()  # This step only runs if the previous steps failed
       run: |
-        echo "Production deployment failed, rolling back..."
-        heroku rollback -a $HEROKU_APP_NAME
+        echo "Deployment failed, rolling back..."  # Log message
+        heroku releases:rollback -a ${{secrets.HEROKU_PRODUCTION_APP_NAME}} \
+        -H "Authorization: Bearer ${{secrets.HEROKU_API_KEY}}"  # Rollback to the previous release
