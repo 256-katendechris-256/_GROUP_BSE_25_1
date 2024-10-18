@@ -24,14 +24,19 @@ jobs:
           ${{ runner.os }}-node-
     - name: Install dependencies
       run: npm ci
-    - name: Build and Test
+    - name: Build
+      run: npm run build
+    - name: Test
       run: |
-        npm run build
+        # Temporarily comment out Faro initialization in App.js
+        sed -i 's/initializeFaro/\/\/ initializeFaro/' App.js
         npm test
+        # Uncomment Faro initialization
+        sed -i 's/\/\/ initializeFaro/initializeFaro/' App.js
 
-  deploy_to_production:
+  deploy_to_staging:
     needs: build_and_test
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/Katende'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -39,7 +44,7 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18.x'
-    - name: Cache Node.js modules
+    - name: Cache Node.js modules (Staging)
       uses: actions/cache@v3
       with:
         path: node_modules
@@ -51,43 +56,82 @@ jobs:
         npm ci
         npm run build
         npm ci --only=production
-
-    - name: Setup Heroku CLI
-      run: |
-        curl https://cli-assets.heroku.com/install.sh | sh
-        heroku --version
-
-    - name: Login to Heroku
+    - name: Deploy to Heroku Staging
+      uses: akhileshns/heroku-deploy@v3.12.14
+      with:
+        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+        heroku_app_name: ${{secrets.HEROKU_STAGING_APP_NAME}}
+        heroku_email: ${{secrets.HEROKU_EMAIL}}
+        appdir: "."
+        procfile: "web: npm start"
+    - name: Check staging deployment status
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-      run: heroku container:login
-
-    - name: Deploy to Heroku
+        HEROKU_APP_NAME: ${{ secrets.HEROKU_STAGING_APP_NAME }}
+      run: |
+        sleep 30
+        status=$(heroku releases -a $HEROKU_APP_NAME --json | jq -r '.[0].status')
+        echo "Staging Deployment Status: $status"
+        if [ "$status" != "succeeded" ]; then
+          echo "Staging deployment failed or is incomplete"
+          exit 1
+        fi
+    - name: Rollback staging if deployment fails
+      if: failure()
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        HEROKU_APP_NAME: ${{ secrets.HEROKU_PRODUCTION_APP_NAME }}
+        HEROKU_APP_NAME: ${{ secrets.HEROKU_STAGING_APP_NAME }}
       run: |
-        heroku git:remote -a $HEROKU_APP_NAME
-        git push heroku master
+        echo "Staging deployment failed, rolling back..."
+        heroku rollback -a $HEROKU_APP_NAME
 
-    - name: Check deployment status
+  deploy_to_production:
+    needs: build_and_test
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+    - name: Cache Node.js modules (Production)
+      uses: actions/cache@v3
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+    - name: Install dependencies and build
+      run: |
+        npm ci
+        npm run build
+        npm ci --only=production
+    - name: Deploy to Heroku Production
+      uses: akhileshns/heroku-deploy@v3.12.14
+      with:
+        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+        heroku_app_name: ${{secrets.HEROKU_PRODUCTION_APP_NAME}}
+        heroku_email: ${{secrets.HEROKU_EMAIL}}
+        appdir: "."
+        procfile: "web: npm start"
+    - name: Check production deployment status
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         HEROKU_APP_NAME: ${{ secrets.HEROKU_PRODUCTION_APP_NAME }}
       run: |
         sleep 30
         status=$(heroku releases -a $HEROKU_APP_NAME --json | jq -r '.[0].status')
-        echo "Deployment Status: $status"
+        echo "Production Deployment Status: $status"
         if [ "$status" != "succeeded" ]; then
-          echo "Deployment failed or is incomplete"
+          echo "Production deployment failed or is incomplete"
           exit 1
         fi
-
-    - name: Rollback if deployment fails
+    - name: Rollback production if deployment fails
       if: failure()
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         HEROKU_APP_NAME: ${{ secrets.HEROKU_PRODUCTION_APP_NAME }}
       run: |
-        echo "Deployment failed, rolling back..."
+        echo "Production deployment failed, rolling back..."
         heroku rollback -a $HEROKU_APP_NAME
