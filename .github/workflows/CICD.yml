@@ -75,6 +75,7 @@ jobs:
 
     #   Deploy to Heroku Staging
     - name: Deploy to Heroku Staging
+      id: deploy_staging
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}  # Use secret for Heroku API key
@@ -82,7 +83,30 @@ jobs:
         heroku_email: ${{secrets.HEROKU_EMAIL}}  # Use secret for Heroku account email
         appdir: "."  # Set the working directory
         procfile: "web: npm start"  # Define the start command in the Procfile
-        justlogin: true  # Only login to Heroku without doing a full deployment
+      continue-on-error: true
+
+    # Check the deployment status on Heroku after staging deployment
+    - name: Check staging deployment status
+      id: check_staging_status
+      run: |
+        sleep 30  # Wait for 30 seconds to allow deployment to settle
+        status=$(curl -n -s https://api.heroku.com/apps/${{secrets.HEROKU_STAGING_APP_NAME}}/releases \
+        -H "Authorization: Bearer ${{secrets.HEROKU_API_KEY}}" \
+        -H "Accept: application/vnd.heroku+json; version=3" | jq -r '.[0].status')
+        echo "Staging Deployment Status: $status"
+        if [ "$status" != "succeeded" ]; then
+          echo "Staging deployment failed or is incomplete"
+          exit 1
+        fi
+      continue-on-error: true
+
+    # Rollback staging deployment if it fails
+    - name: Rollback staging if deployment fails
+      if: steps.deploy_staging.outcome == 'failure' || steps.check_staging_status.outcome == 'failure'
+      run: |
+        echo "Staging deployment failed, rolling back..."
+        heroku releases:rollback -a ${{secrets.HEROKU_STAGING_APP_NAME}} \
+        -H "Authorization: Bearer ${{secrets.HEROKU_API_KEY}}"
 
   deploy_to_production:
     needs: build_and_test  # This job depends on the build_and_test job
@@ -117,6 +141,7 @@ jobs:
 
     #   Deploy to Heroku Production
     - name: Deploy to Heroku Production
+      id: deploy_production
       uses: akhileshns/heroku-deploy@v3.12.14
       with:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}  # Use secret for Heroku API key
@@ -124,21 +149,27 @@ jobs:
         heroku_email: ${{secrets.HEROKU_EMAIL}}  # Use secret for Heroku account email
         appdir: "."  # Set the working directory
         procfile: "web: npm start"  # Define the start command in the Procfile
-        justlogin: true  # Only login to Heroku without doing a full deployment
+      continue-on-error: true
 
-    #   Check the deployment status on Heroku after deployment
-    - name: Check deployment status
+    #   Check the deployment status on Heroku after production deployment
+    - name: Check production deployment status
+      id: check_production_status
       run: |
-        status=$(curl -n https://api.heroku.com/apps/${{secrets.HEROKU_PRODUCTION_APP_NAME}}/releases \
+        sleep 30  # Wait for 30 seconds to allow deployment to settle
+        status=$(curl -n -s https://api.heroku.com/apps/${{secrets.HEROKU_PRODUCTION_APP_NAME}}/releases \
         -H "Authorization: Bearer ${{secrets.HEROKU_API_KEY}}" \
-        -H "Accept: application/vnd.heroku+json; version=3" | jq '.[0].status')
-        echo "Deployment Status: $status"  # Output the deployment status for visibility
-      continue-on-error: true  # Continue even if checking the status fails
+        -H "Accept: application/vnd.heroku+json; version=3" | jq -r '.[0].status')
+        echo "Production Deployment Status: $status"
+        if [ "$status" != "succeeded" ]; then
+          echo "Production deployment failed or is incomplete"
+          exit 1
+        fi
+      continue-on-error: true
 
-    #  Rollback the deployment if it fails
-    - name: Rollback if deployment fails
-      if: failure()  # This step only runs if the previous steps failed
+    #  Rollback the production deployment if it fails
+    - name: Rollback production if deployment fails
+      if: steps.deploy_production.outcome == 'failure' || steps.check_production_status.outcome == 'failure'
       run: |
-        echo "Deployment failed, rolling back..."  # Log message
+        echo "Production deployment failed, rolling back..."
         heroku releases:rollback -a ${{secrets.HEROKU_PRODUCTION_APP_NAME}} \
-        -H "Authorization: Bearer ${{secrets.HEROKU_API_KEY}}"  # Rollback to the previous release
+        -H "Authorization: Bearer ${{secrets.HEROKU_API_KEY}}"
